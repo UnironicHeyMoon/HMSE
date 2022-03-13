@@ -420,9 +420,12 @@ class HMSE:
         self.database.commit()
 
 
-api = RDramaAPIInterface(AUTH_TOKEN, "localhost")
-database = Database("test_db.db")
-log = Log("log_db.db", database)
+with open("token", "r") as file:
+    token = file.read()
+
+api = RDramaAPIInterface(token, "rdrama.net")
+database = Database("hmse.db")
+log = Log("log.db", database)
 bank = Bank(database, log)
 parser = Parser()
 commandQueue = CommandQueue(database)

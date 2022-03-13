@@ -54,7 +54,7 @@ class RDramaAPIInterface:
     Given a notification, returns whether or not the message is from Drama (ie, the messenger)
     '''
     def is_message_from_drama(self,notification) -> bool:
-        return notification['author_name'] == "Drama" and notification['author']['id'] == 1
+        return notification['author_name'] == "Drama"
 
     '''
     IMPLYING THAT THE MESSAGE IS FROM DRAMA, determines whether or not the notification is a gift transaction.
@@ -219,7 +219,7 @@ class RDramaAPIInterface:
                     parsed_notification = self.parse_follow_notification(notification)
                 elif (self.is_message_an_unfollow_notification(notification)):
                     parsed_notification = self.parse_unfollow_notification(notification)
-                elif ("Welcome to " in notification['body_html']):
+                elif ("We're always adding new features, and we take a fun-first approach to development." in notification['body_html']):
                     #Welcome message
                     did_parse = False
                     has_encountered_welcome = True
