@@ -10,7 +10,7 @@ class TickerGenerator:
         self.all_assets = all_assets
     
     def generate(self):
-        headers = ["Stock", "Price", "HTD", "DTD", "WTD", "MTD"]
+        headers = ["Stock", "Price", "Last Price", "Daily Average", "Weekly Average", "Monthly Average"]
 
         rows = []
         for asset in self.all_assets:

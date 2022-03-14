@@ -1,4 +1,5 @@
 from urllib import response
+from xmlrpc.client import boolean
 import bs4
 import requests
 import pprint
@@ -6,9 +7,10 @@ from bs4 import BeautifulSoup, Tag
 from ast import literal_eval
 
 class RDramaAPIInterface:
-    def __init__(self, authorization_token, site) -> None:
+    def __init__(self, authorization_token, site, test_mode : bool) -> None:
         self.headers={"Authorization": authorization_token}
         self.site = site
+        self.welcome_message = "Welcome to " if test_mode else "We're always adding new features, and we take a fun-first approach to development."
 
     '''
     Sends a message to a user.
@@ -219,7 +221,7 @@ class RDramaAPIInterface:
                     parsed_notification = self.parse_follow_notification(notification)
                 elif (self.is_message_an_unfollow_notification(notification)):
                     parsed_notification = self.parse_unfollow_notification(notification)
-                elif ("We're always adding new features, and we take a fun-first approach to development." in notification['body_html']):
+                elif (self.welcome_message in notification['body_html']):
                     #Welcome message
                     did_parse = False
                     has_encountered_welcome = True
@@ -323,9 +325,9 @@ def comment_reply_retriever(id):
 
 
 #TODO: Move this to a separate file
-AUTH_TOKEN = "6vRGm_VsgHlzywNUeJGJulOCv87cAJd4gBlSXxi-VU3zFbLPI-pd29k1QKUke1K-Nrjs2Ieg_buNl6evMG07XRH1qf1qSw5t-VRjNbXkyzlHwufZYNm6z9pygrOcNZq8"
+TEST_AUTH_TOKEN = "6vRGm_VsgHlzywNUeJGJulOCv87cAJd4gBlSXxi-VU3zFbLPI-pd29k1QKUke1K-Nrjs2Ieg_buNl6evMG07XRH1qf1qSw5t-VRjNbXkyzlHwufZYNm6z9pygrOcNZq8"
 if __name__ == "__main__":
-    rdrama = RDramaAPIInterface(AUTH_TOKEN, "localhost")
+    rdrama = RDramaAPIInterface(TEST_AUTH_TOKEN, "localhost")
     print(rdrama.get_parsed_notification(104))
     #pprint.pprint(rdrama.get_comment(129).json())
     #comment_reply_retriever(129)

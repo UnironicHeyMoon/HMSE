@@ -1,6 +1,6 @@
-from cmath import sin
+TEST = True
+
 from pprint import pprint
-from random import randrange
 import sys
 import traceback
 
@@ -14,13 +14,13 @@ from Parser import Parser
 from Bank import Bank
 from Database import Database
 from PriceTracker import PriceTracker
-from RDramaAPIInterface import AUTH_TOKEN, RDramaAPIInterface
+from RDramaAPIInterface import TEST_AUTH_TOKEN, RDramaAPIInterface
 from Randsey import Randsey
 from StockExchange import StockExchange
 from TickerGenerator import TickerGenerator
 from User import User
-import matplotlib.pyplot as plt
 from tabulate import tabulate
+
 
 class HMSE:
     CLASS_NAME = "HMSE"
@@ -327,6 +327,7 @@ class HMSE:
         #Increment time
         current_time = self.database.get_current_time_id()
         self.database.set_current_time_id(current_time+1)
+        self.database.commit()
 
     def handle_transactions(self, commands: list[Command]):
         sales = self.stockExchange.get_sales(commands, [Asset(1, "PUTIN"), Asset(2, "ANTIFA")])
@@ -421,17 +422,28 @@ class HMSE:
 
 
 with open("token", "r") as file:
-    token = file.read()
+    real_auth_token = file.read()
 
-api = RDramaAPIInterface(token, "rdrama.net")
-database = Database("hmse.db")
-log = Log("log.db", database)
+
+if (TEST):
+    endpoint = "localhost"
+    auth_token = TEST_AUTH_TOKEN
+    database_filename = "test_db.db"
+    log_filename = "test_log.db"
+else:
+    endpoint = "rdrama.net"
+    auth_token = real_auth_token
+    database_filename = "hmse.db"
+    log_filename = "log.db"
+
+api = RDramaAPIInterface(auth_token, endpoint, TEST)
+database = Database(database_filename)
+log = Log(log_filename, database)
 bank = Bank(database, log)
 parser = Parser()
 commandQueue = CommandQueue(database)
 
 hmse = HMSE(api, database, bank, parser, commandQueue, log)
-
 
 if (sys.argv[1] == 'update'):
     hmse.update()

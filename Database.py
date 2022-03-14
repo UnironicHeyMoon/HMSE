@@ -223,7 +223,7 @@ class Database:
     def create_state_row_if_does_not_exist(self):
         row = self.get_only_row("SELECT * FROM state")
         if (row is None):
-            self.run_command("INSERT INTO state (last_processed_notification_id) VALUES (0)")
+            self.run_command("INSERT INTO state (last_processed_notification_id, current_time_id) VALUES (0, 0)")
 
     def set_last_processed_notification_id(self, id):
         self.create_state_row_if_does_not_exist()

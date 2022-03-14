@@ -21,10 +21,10 @@ class PriceTracker:
         day_average_price = self.get_average_price(prices_in_day, lambda a: a.price, price)
 
         pricepoints_in_week = self.database.get_all_prices_in_range(current_time - WEEK_LENGTH, current_time, asset)
-        week_average_price = self.get_average_price(pricepoints_in_week, lambda a : a.day_average_price, price)
+        week_average_price = self.get_average_price(pricepoints_in_week, lambda a : a.price, price)
 
         pricepoints_in_month = self.database.get_all_prices_in_range(current_time - MONTH_LENGTH, current_time, asset)
-        month_average_price = self.get_average_price(pricepoints_in_month, lambda a : a.week_average_price, price)
+        month_average_price = self.get_average_price(pricepoints_in_month, lambda a : a.price, price)
 
         pricepoint = PricePoint(current_time, asset, price, day_average_price, week_average_price, month_average_price)
         self.database.set_price(pricepoint)

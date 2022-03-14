@@ -31,8 +31,8 @@ class Parser:
                 to_return['type'] = 'SELL'
                 to_return['asset'] = parameters[2]
                 to_return['price'] = parameters[3]
-                to_return['time_remaining'] = named_parameters['time'] if 'time' in named_parameters else 1
-                to_return['count'] = named_parameters['count'] if 'count' in named_parameters else 1
+                to_return['time_remaining'] = named_parameters['TIME'] if 'TIME' in named_parameters else 1
+                to_return['count'] = named_parameters['COUNT'] if 'COUNT' in named_parameters else 1
             
             elif (command_name.upper() == "CANCEL"):
                 to_return['type'] = 'CANCEL'
