@@ -1,7 +1,7 @@
 from asyncio import to_thread
 import random
 from Asset import Asset
-from Command import Command
+from Command import BuyCommand, Command
 from RDramaAPIInterface import RDramaAPIInterface
 from Randsey import Randsey
 from User import User
@@ -28,10 +28,12 @@ class MessageManager:
     
     def get_all_queued_messages(self):
         to_return = []
+
         for user_id, messages in self.unsent_messages.items():
+
             message = "# Hourly Trade Notifications\n\n"
             message += "Please see the following notifications about your placed commands!\n\n"
-            message += self.construct_digest_message_table(messages)
+            message += self.construct_digest_message_table(self.collapse_messages(messages))
             message += "\n\n"
             message += "Thanks,\n\n"
             message += "HMSE\n\n"
@@ -43,13 +45,33 @@ class MessageManager:
             })
         return to_return
 
+    def collapse_messages(self, messages : list[dict]):
+        collapsed_messages = []
+        for message in messages:
+            has_collapsed = False
+            for collapsed_message in collapsed_messages:
+                if collapsed_message['message'] == message['message'] and collapsed_message['command'].user_friendly_description == message['command'].user_friendly_description:
+                    has_collapsed = True
+                    collapsed_message['count']+=1
+                    break
+            if (not has_collapsed):
+                collapsed_messages.append(
+                    {
+                        'message': message['message'],
+                        'command': message['command'],
+                        'message_type': message['message_type'],
+                        'count': 1
+                    }
+                )
+        return collapsed_messages
+
     def construct_digest_message_table(self, messages : list[dict]):
         to_return = "<table style=\"border: 1px solid black;border-collapse: collapse;\">"
         #Header
         to_return += "<thead style=\"border: 1px solid black;border-collapse: collapse;\">"
         to_return += "<tr>"
         to_return += "<td style=\"border: 1px solid black;border-collapse: collapse;\">Info</td>"
-        to_return += "<td style=\"border: 1px solid black;border-collapse: collapse;\">ID</td>"
+        to_return += "<td style=\"border: 1px solid black;border-collapse: collapse;\">Count</td>"
         to_return += "<td style=\"border: 1px solid black;border-collapse: collapse;\">Command</td>"
         to_return += "<td style=\"border: 1px solid black;border-collapse: collapse;\">Message</td>"
         to_return += "</tr>"
@@ -59,7 +81,7 @@ class MessageManager:
         for message in messages:
             to_return += "<tr>"
             to_return += f"<td style=\"border: 1px solid black;border-collapse: collapse;\">{self.get_message_type_symbol(message['message_type'])}</td>" #Message Type Symbol
-            to_return += f"<td style=\"border: 1px solid black;border-collapse: collapse;\">{message['command'].id}</td>" #ID
+            to_return += f"<td style=\"border: 1px solid black;border-collapse: collapse;\">{message['count']}</td>" #ID
             to_return += f"<td style=\"border: 1px solid black;border-collapse: collapse;\">{message['command'].user_friendly_description}</td>" #Description
             to_return += f"<td style=\"border: 1px solid black;border-collapse: collapse;\">{message['message']}</td>" #Message
             to_return += "</tr>"
