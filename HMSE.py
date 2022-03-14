@@ -57,8 +57,6 @@ class HMSE:
         finally:
             self.database.commit()
         
-        self.log.add_log_message(self.CLASS_NAME, LogMessageType.UPDATE, f"Updating. There are {len(notifications)} to process. Previous Last Processed = {last_processed_notification_id}, New Last processed = {new_last_processed_notification_id}")
-
         for notification in notifications:
             if 'user_name' in notification and 'user_id' in notification:
                 user = User(notification['user_id'], notification['user_name'])
@@ -445,17 +443,18 @@ commandQueue = CommandQueue(database)
 
 hmse = HMSE(api, database, bank, parser, commandQueue, log)
 
-if (sys.argv[1] == 'update'):
-    hmse.update()
-elif (sys.argv[1] == 'process'):
-    hmse.process()
-elif (sys.argv[1] == 'ipo'):
-    stock_name = sys.argv[2]
-    amount = int(sys.argv[3])
-    asking_price = int(sys.argv[4])
-    hmse.ipo(stock_name, amount, asking_price)
-else:
-    print("lol. lmao.")
-
-database.close()
-log.close()
+try:
+    if (sys.argv[1] == 'update'):
+        hmse.update()
+    elif (sys.argv[1] == 'process'):
+        hmse.process()
+    elif (sys.argv[1] == 'ipo'):
+        stock_name = sys.argv[2]
+        amount = int(sys.argv[3])
+        asking_price = int(sys.argv[4])
+        hmse.ipo(stock_name, amount, asking_price)
+    else:
+        print("lol. lmao.")
+finally:
+    database.close()
+    log.close()

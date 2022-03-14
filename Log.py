@@ -14,6 +14,7 @@ class Log:
         self.con.commit()
 
     def close(self):
+        self.commit()
         self.con.close()
 
     def rollback(self):
@@ -61,7 +62,6 @@ class Log:
                 ?,
                 ?
             )''', user_id, time_id, the_class, message_type, message)
-        self.commit()
 
 class LogMessageType:
     EXCEPTION = "EXCEPTION"
