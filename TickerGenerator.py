@@ -50,6 +50,5 @@ class TickerGenerator:
     def get_growth_percentage(self, a, b):
         if (a == 0 or b == 0):
             return 0
-        size = a/b
-        growth = 1 - size
-        return (int(growth * 100))
+        size = (b - a) / a
+        return (int(size * 100))
