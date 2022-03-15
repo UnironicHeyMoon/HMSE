@@ -434,7 +434,7 @@ else:
     database_filename = "hmse.db"
     log_filename = "log.db"
 
-api = RDramaAPIInterface(auth_token, endpoint, TEST)
+api = RDramaAPIInterface(auth_token, endpoint, TEST, 0.1)
 database = Database(database_filename)
 log = Log(log_filename, database)
 bank = Bank(database, log)
@@ -454,6 +454,11 @@ try:
         hmse.ipo(stock_name, amount, asking_price)
     else:
         print("lol. lmao.")
+except BaseException as e:
+    print(f"=====Exception occurred!=====")
+    print(f"While performing the script actions, got this error: \"{e}\"")
+    print(traceback.format_exc())
+    log.add_log_message("NONE", LogMessageType.EXCEPTION, traceback.format_exc())
 finally:
     database.close()
     log.close()

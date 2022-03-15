@@ -1,3 +1,4 @@
+import time
 from urllib import response
 from xmlrpc.client import boolean
 import bs4
@@ -7,10 +8,11 @@ from bs4 import BeautifulSoup, Tag
 from ast import literal_eval
 
 class RDramaAPIInterface:
-    def __init__(self, authorization_token, site, test_mode : bool) -> None:
+    def __init__(self, authorization_token, site, test_mode : bool, sleep : float) -> None:
         self.headers={"Authorization": authorization_token}
         self.site = site
         self.welcome_message = "Welcome to " if test_mode else "We're always adding new features, and we take a fun-first approach to development."
+        self.sleep = sleep
 
     '''
     Sends a message to a user.
@@ -277,6 +279,7 @@ class RDramaAPIInterface:
         return self.post(url, data={'amount':amount})
 
     def get(self, url, allowed_failures = []):
+        time.sleep(self.sleep)
         response = requests.get(url, headers=self.headers)
         if (response.status_code != 200 and response.status_code not in allowed_failures):
             raise BaseException(f"GET {url} ({response.status_code}) {response.json()}")
@@ -284,6 +287,7 @@ class RDramaAPIInterface:
             return response
     
     def post(self, url, data, allowed_failures = []):
+        time.sleep(self.sleep)
         response = requests.post(url, headers=self.headers, data=data)
         if (response.status_code != 200  and response.status_code not in allowed_failures):
             raise BaseException(f"POST {url} ({response.status_code}) {data} => {response.json()}")
