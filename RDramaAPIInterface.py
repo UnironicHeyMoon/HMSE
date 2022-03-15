@@ -18,14 +18,14 @@ class RDramaAPIInterface:
     def send_message(self, username, message):
         if (username == "HMSE"):
             return
-        url=f"http://{self.site}/@{username}/message"
+        url=f"https://{self.site}/@{username}/message"
         return self.post(url, data={'message':message})
 
     '''
     Replies to the comment with the given id.
     '''
     def reply_to_comment(self,parent_fullname, parent_submission, message):
-        url=f"http://{self.site}/comment"
+        url=f"https://{self.site}/comment"
         return self.post(url, data={
             'parent_fullname':parent_fullname,
             'submission': parent_submission,
@@ -42,14 +42,14 @@ class RDramaAPIInterface:
     Gets "all" comments. TODO: Probably need to add pagination support if I want to actually use this
     '''
     def get_comments(self):
-        url=f"http://{self.site}/comments"
+        url=f"https://{self.site}/comments"
         return self.get(url)
 
     '''
     Calls the notifications endpoint
     '''
     def get_notifications(self, page : int):
-        url=f"http://{self.site}/notifications?page={page}"
+        url=f"https://{self.site}/notifications?page={page}"
         return self.get(url)
 
     '''
@@ -255,25 +255,25 @@ class RDramaAPIInterface:
         return to_return
 
     def reply_to_direct_message(self, message_id : int, message : str):
-        url=f"http://{self.site}/reply"
+        url=f"https://{self.site}/reply"
         return self.post(url, data = {
             'parent_id' : message_id,
             'body': message
         }, allowed_failures=[500]) #There is a bug (probably) with the site that causes 500 errors to be sent when doing this via json. TODO: Ask Aevann why
 
     def get_comment(self, id):
-        url=f"http://{self.site}/comment/{id}"
+        url=f"https://{self.site}/comment/{id}"
         return self.get(url)
 
     '''
     I have no clue what this is supposed to do, lol.
     '''
     def clear_notifications(self):
-        url=f"http://{self.site}/clear"
+        url=f"https://{self.site}/clear"
         return self.post(url, headers=self.headers)
 
     def give_coins(self, user, amount):
-        url=f"http://{self.site}/@{user}/transfer_coins"
+        url=f"https://{self.site}/@{user}/transfer_coins"
         return self.post(url, data={'amount':amount})
 
     def get(self, url, allowed_failures = []):
@@ -302,7 +302,7 @@ So it should be easily disabled.
 def comment_reply_retriever(id):
     if (not RETRIEVE_COMMENT_REPLIES):
         return []
-    url = f"http://localhost/comment/{id}#context"
+    url = f"https://localhost/comment/{id}#context"
     result = requests.get(url).text
     soup = BeautifulSoup(result, "html.parser")
     all_comments = soup.find_all("div", {"class":COMMENT_BASE_CLASS})

@@ -1,4 +1,4 @@
-TEST = True
+TEST = False
 
 from pprint import pprint
 import sys
@@ -153,7 +153,7 @@ class HMSE:
                 asset = self.database.get_asset_with_name(command['asset'].upper())
                 max_price = int(command['max_price'])
                 count = int(command['count'])
-                time_remaining = int(command['time_remaining'])
+                time_remaining = max(int(command['time_remaining']), 24)
 
                 if (self.bank.get_balance(user) < max_price * count): #Make sure that user has enough for max...
                     to_return = "You don't have enough money! lmao"
@@ -170,7 +170,7 @@ class HMSE:
                 asset = self.database.get_asset_with_name(command['asset'].upper())
                 price = int(command['price'])
                 count = int(command['count'])
-                time_remaining = int(command['time_remaining'])
+                time_remaining = max(int(command['time_remaining']), 24)
 
                 if (self.bank.get_number_of_assets(user, asset) < count): #Make sure that user has enough assets...
                     to_return = "You don't have enough shares! lmao"
@@ -442,7 +442,6 @@ parser = Parser()
 commandQueue = CommandQueue(database)
 
 hmse = HMSE(api, database, bank, parser, commandQueue, log)
-
 try:
     if (sys.argv[1] == 'update'):
         hmse.update()
