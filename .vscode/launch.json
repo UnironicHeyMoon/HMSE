@@ -24,6 +24,15 @@
             "justMyCode": true
         },
         {
+            "args": ["fixdc"],
+            "name": "HMSE : Fix DC",
+            "type": "python",
+            "request": "launch",
+            "program": "HMSE.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
             "args": ["process"],
             "name": "HMSE : Process Transactions",
             "type": "python",

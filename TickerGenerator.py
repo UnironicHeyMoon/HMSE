@@ -9,6 +9,9 @@ class TickerGenerator:
         self.pricetracker = pricetracker
         self.all_assets = all_assets
     
+    '''
+    Creates ticker table.
+    '''
     def generate(self):
         headers = ["Stock", "Price", "Last Price", "Daily Average", "Weekly Average", "Monthly Average"]
 

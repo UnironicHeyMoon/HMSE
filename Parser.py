@@ -1,16 +1,18 @@
 
 class Parser:
+    '''
+    Parses messages containing commands
+    '''
     def parse_message(self, message : str):
         if ("#demo" in message):
             return {
                 "type": "DEMO"
             }
 
-
         to_return = {}  
         try:
-            tokens = message.upper().split(" ")
-            starting_index = tokens.index("@HMSE")
+            tokens = message.replace("\n"," ").upper().split(" ")
+            starting_index = tokens.index("@HMSE") if "@HMSE" in tokens else tokens.index("@hmse")
             parameters = tokens[starting_index:]
             named_parameters = {}
             for parameter in parameters:

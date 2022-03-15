@@ -5,10 +5,14 @@ from PricePoint import PricePoint
 from User import User
 from Asset import Asset
 
+from os.path import exists, join, realpath
+
+from Util import get_real_filename
+
 class Database:
     def __init__(self, filename : str) -> None:
-        self._con = sqlite3.connect(filename)
-        with open('setup_database.sql') as sql_file:
+        self._con = sqlite3.connect(get_real_filename(filename), timeout=120)
+        with open(get_real_filename("setup_database.sql")) as sql_file:
             self._con.executescript(sql_file.read())
     
     def commit(self):
@@ -169,8 +173,9 @@ class Database:
         INNER JOIN assets ON prices.asset_id = assets.asset_id
         WHERE
             prices.time_id <= ? AND
-            prices.time_id >= ?
-        ''', max_time_id, min_time_id)
+            prices.time_id >= ? AND
+            assets.asset_id = ?
+        ''', max_time_id, min_time_id, asset.id)
 
         to_return = []
         for row in rows:
@@ -193,10 +198,11 @@ class Database:
         INNER JOIN assets
         ON prices.asset_id = assets.asset_id
         WHERE
-            prices.time_id <= ?
+            prices.time_id <= ? AND 
+            assets.asset_id = ?
         ORDER BY prices.time_id DESC
         LIMIT 1
-        ''', time_id)
+        ''', time_id, asset.id)
 
         if (row is None):
             return None

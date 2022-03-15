@@ -1,26 +1,34 @@
 import copy
-from pprint import pprint
-from re import A
 from typing import Callable
 
-from numpy import average
 from Asset import Asset
-from Bank import Bank
-from Command import BuyCommand, Command, ExpiringCommand, SellCommand, WithdrawalCommand
-from CommandQueue import CommandQueue
-from Database import Database
-from MessageManager import MessageManager, MessageType
-from PriceTracker import PriceTracker
-from User import User
-
+from Command import BuyCommand, Command, SellCommand
 
 class StockExchange:
-    def __init__(self) -> None:
-        pass
-    
+    '''
+    Gets how the next market will happen, given the list of commands.
+
+    For each asset given in all_assets, there will be an entry in the returned dictionary. The asset can be used as a key to access the information.
+     - sell_offers: All attempts to buy the asset.
+     - buy_offers: All attempts to sell the asset
+     - completed sales: A list of dictionaries, representing what sales actually took place:
+        - sell_command: The command that is selling the asset.
+        - buy_command: The command that is buying the asset
+        - sale_price: How much it sold for
+        - price: The seller's listed price
+        - max_price: The maximum the seller was willing to pay.
+     - dead_market: Whether or not the market is dead, ie, no sales took place.
+     - buyers_market: Whether or not it is a buyer's market
+     - failed_sales: A dictionary containing lists of failed sales, for various reasons:
+        - outbidded: The buyer's maximum price was too low in a seller's market.
+        - outpriced: The seller's price was too high in a buyer's market.
+        - no_buyers: no one is willing to buy the asset.
+        - no_sellers: no one is willing to sell the asset.
+        - stingy: Buyer's maximum price was too low in a buyer's market.
+    '''
     def get_sales(self, commands : list[Command], all_assets : list[Asset]) -> dict[Asset, dict]:
-        selling_assets : dict[Asset, list[SellCommand]] = StockExchange.create_sell_command_groups(commands)
-        buying_assets : dict[Asset, list[BuyCommand]] = StockExchange.create_buy_command_groups(commands)
+        selling_assets : dict[Asset, list[SellCommand]] = StockExchange._create_sell_command_groups(commands)
+        buying_assets : dict[Asset, list[BuyCommand]] = StockExchange._create_buy_command_groups(commands)
         
         to_return = {}
 
@@ -112,7 +120,7 @@ class StockExchange:
         
         return to_return
 
-    def group_objects(objects_to_group: list[object], is_object_valid : Callable[[object], bool], get_grouping_key: Callable[[object], object]) -> dict[object, list[object]]:
+    def _group_objects(objects_to_group: list[object], is_object_valid : Callable[[object], bool], get_grouping_key: Callable[[object], object]) -> dict[object, list[object]]:
         objects : list[object] = list(filter(lambda a : is_object_valid(a), objects_to_group))
         to_return : dict[object, list[object]] = {}
 
@@ -123,8 +131,8 @@ class StockExchange:
         
         return to_return
 
-    def create_sell_command_groups(commands : list[Command]) -> dict[Asset, list[SellCommand]]:
-        return StockExchange.group_objects(commands, lambda a : isinstance(a, SellCommand), lambda a : a.asset)
+    def _create_sell_command_groups(commands : list[Command]) -> dict[Asset, list[SellCommand]]:
+        return StockExchange._group_objects(commands, lambda a : isinstance(a, SellCommand), lambda a : a.asset)
     
-    def create_buy_command_groups(commands : list[Command]) -> dict[Asset, list[BuyCommand]]:
-        return StockExchange.group_objects(commands, lambda a : isinstance(a, BuyCommand), lambda a : a.asset)
+    def _create_buy_command_groups(commands : list[Command]) -> dict[Asset, list[BuyCommand]]:
+        return StockExchange._group_objects(commands, lambda a : isinstance(a, BuyCommand), lambda a : a.asset)

@@ -7,6 +7,14 @@ import pprint
 from bs4 import BeautifulSoup, Tag
 from ast import literal_eval
 
+RETRIEVE_COMMENT_REPLIES = True
+COMMENT_BASE_CLASS = "anchor comment"
+USER_INFO_CLASS = "user-info"
+COMMENT_TEXT_CLASS = 'comment-text mb-0'
+
+'''
+Wrapper around the RDRama API
+'''
 class RDramaAPIInterface:
     def __init__(self, authorization_token, site, test_mode : bool, sleep : float) -> None:
         self.headers={"Authorization": authorization_token}
@@ -72,12 +80,21 @@ class RDramaAPIInterface:
             return (marsey_capitalist_manlet.name == "img" and marsey_capitalist_manlet['alt'] == ":marseycapitalistmanlet:")        
 
 
+    '''
+    Whether or not the message is a follow notification.
+    '''
     def is_message_a_follow_notification(self, notification):
         return "has followed you!" in notification['body_html']
     
+    '''
+    Whether or not the message is an unfollow notification.
+    '''
     def is_message_an_unfollow_notification(self, notification):
         return "has unfollowed you!" in notification['body_html']
 
+    '''
+    Parses a gift transaction
+    '''
     def parse_gift_transaction(self, notification):
         soup = BeautifulSoup(notification['body_html'], 'html.parser')
                 
@@ -100,6 +117,9 @@ class RDramaAPIInterface:
             "id": notification['id']
         }
 
+    '''
+    parses a post mention
+    '''
     def parse_post_mention(self, notification):
         soup = BeautifulSoup(notification['body_html'], 'html.parser')
                 
@@ -123,6 +143,9 @@ class RDramaAPIInterface:
             "post_id": post_id
         }
 
+    '''
+    parses a follow notification
+    '''
     def parse_follow_notification(self, notification):
         soup = BeautifulSoup(notification['body_html'], 'html.parser')
                 
@@ -141,6 +164,9 @@ class RDramaAPIInterface:
             "id": notification['id']
         }
 
+    '''
+    parses an unfollow notification
+    '''
     def parse_unfollow_notification(self, notification):
         soup = BeautifulSoup(notification['body_html'], 'html.parser')
                 
@@ -158,6 +184,9 @@ class RDramaAPIInterface:
             "id": notification['id']
         }
 
+    '''
+    parses a dm
+    '''
     def parse_direct_message(self, notification):
         return {
             "type": "direct_message",
@@ -167,8 +196,11 @@ class RDramaAPIInterface:
             "message_html": BeautifulSoup(notification['body_html'], 'html.parser').html.body.p.text
         }
 
+    '''
+    parses a reply to a comment.
+    '''
     def parse_comment_reply(self, notification, last_processed_notification_id):
-        replies = comment_reply_retriever(notification['id'])
+        replies = self.comment_reply_retriever(notification['id'])
         new_replies = []
         
         greatest_reply_id = 0
@@ -245,7 +277,7 @@ class RDramaAPIInterface:
             if (did_parse):
                 should_stop_not_comment_reply = parsed_notification['id'] <= last_processed_notification_id and parsed_notification['type'] != "comment_reply"
                 should_stop_comment_reply = parsed_notification['type'] == 'comment_reply' and parsed_notification['replies'] == []
-                if (should_stop_not_comment_reply or should_stop_comment_reply):
+                if (should_stop_not_comment_reply):
                     #We are done.
                     did_parse_all = True
                     break
@@ -294,38 +326,39 @@ class RDramaAPIInterface:
         else:
             return response
 
-RETRIEVE_COMMENT_REPLIES = True
-COMMENT_BASE_CLASS = "anchor comment"
-USER_INFO_CLASS = "user-info"
-COMMENT_TEXT_CLASS = 'comment-text mb-0'
-'''
-Performs scraping of all comment replies.
-This is super finicky... and I am also worried that it will cause throttling.
-So it should be easily disabled.
-'''
-def comment_reply_retriever(id):
-    if (not RETRIEVE_COMMENT_REPLIES):
-        return []
-    url = f"https://localhost/comment/{id}#context"
-    result = requests.get(url).text
-    soup = BeautifulSoup(result, "html.parser")
-    all_comments = soup.find_all("div", {"class":COMMENT_BASE_CLASS})
-    to_return = []
-    for comment in all_comments:
-        comment_id = comment['id'].split("-")[1]
-        user_info_div = comment.find("div", {'class':USER_INFO_CLASS})
-        user_info = literal_eval(user_info_div.a['onclick'][9:-1])
-        user_name = user_info['username']
-        user_id = user_info['id']
-        comment_text_div = comment.find("div", {'class':COMMENT_TEXT_CLASS})
-        message = comment_text_div.p.text
-        to_return.append({
-            'id': comment_id,
-            'user_name': user_name,
-            'user_id': user_id,
-            'message': message
-        })
-    return to_return
+    '''
+    Performs scraping of all comment replies.
+    This is super finicky... and I am also worried that it will cause throttling.
+    So it should be easily disabled.
+    '''
+    def comment_reply_retriever(self, id):
+        if (not RETRIEVE_COMMENT_REPLIES):
+            return []
+        url = f"https://{self.site}/comment/{id}#context"
+        headers = {
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36"
+        }
+        result = requests.get(url, headers=headers).text
+        soup = BeautifulSoup(result, "html.parser")
+        all_comments = soup.find_all("div", {"class":COMMENT_BASE_CLASS})
+        to_return = []
+        for comment in all_comments:
+            comment_id = comment['id'].split("-")[1]
+            user_info_div = comment.find("div", {'class':USER_INFO_CLASS})
+            user_info = literal_eval(user_info_div.a['onclick'][9:-1])
+            user_name = user_info['username']
+            user_id = user_info['id']
+            comment_text_div = comment.find("div", {'class':COMMENT_TEXT_CLASS})
+            message = comment_text_div.p.text
+            to_return.append({
+                'id': comment_id,
+                'user_name': user_name,
+                'user_id': user_id,
+                'message': message
+            })
+        return to_return
+
+
 
 
 #TODO: Move this to a separate file
@@ -333,6 +366,3 @@ TEST_AUTH_TOKEN = "6vRGm_VsgHlzywNUeJGJulOCv87cAJd4gBlSXxi-VU3zFbLPI-pd29k1QKUke
 if __name__ == "__main__":
     rdrama = RDramaAPIInterface(TEST_AUTH_TOKEN, "localhost")
     print(rdrama.get_parsed_notification(104))
-    #pprint.pprint(rdrama.get_comment(129).json())
-    #comment_reply_retriever(129)
-#print(get_deposits())

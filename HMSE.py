@@ -1,5 +1,6 @@
 TEST = False
 
+import ast
 from pprint import pprint
 import sys
 import traceback
@@ -20,8 +21,14 @@ from StockExchange import StockExchange
 from TickerGenerator import TickerGenerator
 from User import User
 from tabulate import tabulate
+from os.path import exists, join, realpath
+
+from Util import get_real_filename
 
 
+'''
+The real driver of HMSE.
+'''
 class HMSE:
     CLASS_NAME = "HMSE"
 
@@ -39,6 +46,9 @@ class HMSE:
         self.log = log
         self.tickerGenerator = TickerGenerator(self.priceTracker, self.all_assets)
 
+    '''
+    Handles all notifications.
+    '''
     def update(self):
         try:
             last_processed_notification_id = self.database.get_last_processed_notification_id()
@@ -51,58 +61,66 @@ class HMSE:
                 new_last_processed_notification_id = last_processed_notification_id
 
         except BaseException as e:
+
             self.log.add_log_message(self.CLASS_NAME, LogMessageType.EXCEPTION, f"Exception occurred in last_processed_notification_id: {e}")
             self.database.rollback()
             return
         finally:
             self.database.commit()
         
+        print(f"Got {len(notifications)} notifications")
         for notification in notifications:
-            if 'user_name' in notification and 'user_id' in notification:
-                user = User(notification['user_id'], notification['user_name'])
-            else:
-                user = None
-            self.log.add_log_message(self.CLASS_NAME, LogMessageType.PROCESS_NOTIFICATION, str(notification), user=user)
+            self.handle_notification(notification)
 
-            try:
-                if notification['type'] == 'transfer':
-                    self.bank.deposit(user, notification['amount'])
-                    message = f"Deposited {notification['amount']} in your account."
-                    message += self.randsey.get_randsey_says(user)
-                    self.api.send_message(user.name, message)
-                    self.log.add_log_message(self.CLASS_NAME, LogMessageType.DEPOSIT, str(notification['amount']), user=user)
-                elif notification['type'] == 'post_mention':
-                    self.api.reply_to_comment_easy(notification['id'], notification['post_id'], ":randsey: You rang?")
-                elif notification['type'] == 'follow':
-                    self.api.send_message(user.name, f":randsey: *If it isn't {user.name}. Don't expect any special favors.* {self.randsey.get_randsey_says(user)}")
-                elif notification['type'] == 'unfollow':
-                    self.api.send_message(user.name, f":randsey: *Well, fuck you too, I guess.* {self.randsey.get_randsey_says(user)}")
-                elif notification['type'] == 'comment_reply':
-                    for reply in notification['replies']:
-                        user = User(int(reply['user_id']), reply['user_name'])
-                        response = self.handle_command(user, reply['message'])
-                        self.api.reply_to_comment_easy(reply['id'], notification['post_id'], response)
-                elif notification['type'] == 'direct_message':
-                    response = self.handle_command(user, notification['message_html'])
-                    self.api.reply_to_direct_message(notification['id'], str(response))
-                elif notification['type'] == 'comment_mention':
-                    response = self.handle_command(user, notification['message'])
-                    self.api.reply_to_comment_easy(notification['id'], notification['post_id'], str(response))
-            except BaseException as e:
-               print(f"=====Exception occurred!=====")
-               print("While processing this notification:")
-               pprint(notification)
-               print(f"We got: \"{e}\"")
-               print(traceback.format_exc())
-               self.log.add_log_message(self.CLASS_NAME, LogMessageType.EXCEPTION, f"While processing notification: {traceback.format_exc()}")
-               self.database.rollback()
-            else:
-               self.database.commit()
+    '''
+    Handles a single notification
+    '''
+    def handle_notification(self, notification, special_message = ""):
+        if 'user_name' in notification and 'user_id' in notification:
+            user = User(notification['user_id'], notification['user_name'])
+        else:
+            user = None
+        self.log.add_log_message(self.CLASS_NAME, LogMessageType.PROCESS_NOTIFICATION, str(notification), user=user)
 
+        try:
+            if notification['type'] == 'transfer':
+                self.bank.deposit(user, notification['amount'])
+                message = f"Deposited {notification['amount']} in your account.\n\n"
+                message += special_message
+                message += self.randsey.get_randsey_says(user)
+                self.api.send_message(user.name, message)
+                self.log.add_log_message(self.CLASS_NAME, LogMessageType.DEPOSIT, str(notification['amount']), user=user)
+            elif notification['type'] == 'post_mention':
+                self.api.reply_to_comment_easy(notification['id'], notification['post_id'], ":randsey: You rang?")
+            elif notification['type'] == 'follow':
+                self.api.send_message(user.name, f":randsey: *If it isn't {user.name}. Don't expect any special favors.* {self.randsey.get_randsey_says(user)}")
+            elif notification['type'] == 'unfollow':
+                self.api.send_message(user.name, f":randsey: *Well, fuck you too, I guess.* {self.randsey.get_randsey_says(user)}")
+            elif notification['type'] == 'comment_reply':
+                for reply in notification['replies']:
+                    user = User(int(reply['user_id']), reply['user_name'])
+                    response = self.handle_command(user, reply['message'])
+                    self.api.reply_to_comment_easy(reply['id'], notification['post_id'], response, special_message)
+            elif notification['type'] == 'direct_message':
+                response = self.handle_command(user, notification['message_html'], special_message=special_message)
+                self.api.reply_to_direct_message(notification['id'], str(response))
+            elif notification['type'] == 'comment_mention':
+                response = self.handle_command(user, notification['message'], special_message=special_message)
+                self.api.reply_to_comment_easy(notification['id'], notification['post_id'], str(response))
+        except BaseException as e:
+            print(f"=====Exception occurred!=====")
+            print("While processing this notification:")
+            pprint(notification)
+            print(f"We got: \"{e}\"")
+            print(traceback.format_exc())
+            self.log.add_log_message(self.CLASS_NAME, LogMessageType.EXCEPTION, f"While processing notification: {traceback.format_exc()}")
+            self.database.rollback()
+        else:
+            self.database.commit()
     '''
     handles command, returns some messaging around what happened.
     '''
-    def handle_command(self, user : User, message : str) -> str:
+    def handle_command(self, user : User, message : str, special_message = "") -> str:
         command = self.parser.parse_message(message)
         to_return = ""
 
@@ -153,7 +171,7 @@ class HMSE:
                 asset = self.database.get_asset_with_name(command['asset'].upper())
                 max_price = int(command['max_price'])
                 count = int(command['count'])
-                time_remaining = max(int(command['time_remaining']), 24)
+                time_remaining = min(int(command['time_remaining']), 24)
 
                 if (self.bank.get_balance(user) < max_price * count): #Make sure that user has enough for max...
                     to_return = "You don't have enough money! lmao"
@@ -170,7 +188,7 @@ class HMSE:
                 asset = self.database.get_asset_with_name(command['asset'].upper())
                 price = int(command['price'])
                 count = int(command['count'])
-                time_remaining = max(int(command['time_remaining']), 24)
+                time_remaining = min(int(command['time_remaining']), 24)
 
                 if (self.bank.get_number_of_assets(user, asset) < count): #Make sure that user has enough assets...
                     to_return = "You don't have enough shares! lmao"
@@ -234,8 +252,7 @@ class HMSE:
                     to_return += f"Lowest Asking Price: {sell_offers[0]}\n\n"
                 if (completed_sale_sellers_prices != []):
                     completed_sale_sellers_prices.sort()
-                    to_return += f"Highest Winning Asking Price: {completed_sale_sellers_prices[0]}\n\n"
-                
+                    to_return += f"Highest Winning Asking Price: {completed_sale_sellers_prices[0]}\n\n"    
             elif (command['type'] == "TICKER"):
                 to_return = self.tickerGenerator.generate()
             elif (command['type'] == "TREND"):
@@ -271,9 +288,14 @@ class HMSE:
             self.database.rollback()
         else:
             self.database.commit()
+        to_return += special_message
         to_return += self.randsey.get_randsey_says(user)
         return to_return
 
+
+    '''
+    Perform all transactions
+    '''
     def process(self):
         self.log.add_log_message(self.CLASS_NAME, LogMessageType.PROCESS, "Processing...")
         commands = self.commandQueue.get_commands()
@@ -419,10 +441,6 @@ class HMSE:
         self.database.commit()
 
 
-with open("token", "r") as file:
-    real_auth_token = file.read()
-
-
 if (TEST):
     endpoint = "localhost"
     auth_token = TEST_AUTH_TOKEN
@@ -430,11 +448,13 @@ if (TEST):
     log_filename = "test_log.db"
 else:
     endpoint = "rdrama.net"
-    auth_token = real_auth_token
+    
+    with open((get_real_filename("token"))) as file:
+        auth_token = file.read()
     database_filename = "hmse.db"
     log_filename = "log.db"
 
-api = RDramaAPIInterface(auth_token, endpoint, TEST, 0.1)
+api = RDramaAPIInterface(auth_token, endpoint, TEST, 1.0)
 database = Database(database_filename)
 log = Log(log_filename, database)
 bank = Bank(database, log)
@@ -447,11 +467,37 @@ try:
         hmse.update()
     elif (sys.argv[1] == 'process'):
         hmse.process()
+    elif (sys.argv[1] == 'test'):
+        print(api.comment_reply_retriever(1550641))
     elif (sys.argv[1] == 'ipo'):
         stock_name = sys.argv[2]
         amount = int(sys.argv[3])
         asking_price = int(sys.argv[4])
         hmse.ipo(stock_name, amount, asking_price)
+    elif (sys.argv[1] == 'superfix'):
+        all_notifications = api.get_parsed_notification(1) #Start from the beginning
+        processed_notifications = log.get_log_messages(LogMessageType.PROCESS_NOTIFICATION) #Get all notifications
+
+        processed_notification_ids = []
+        for i in processed_notifications:
+            try:
+                the_id = int(ast.literal_eval(i['message'].replace("'", '"'))['id'])
+                if the_id != 0:
+                    processed_notification_ids.append(the_id)
+            except:
+                print("Unprocessable: ")
+                pprint(i)
+        unprocessed_notifications = [i for i in all_notifications if int(i['id']) not in processed_notification_ids]
+
+        print(f"The unprocessed ids are: {[i['id'] for i in unprocessed_notifications]}")
+        print(f"The processed ids are: {processed_notification_ids}")
+        print(f"There are {len(all_notifications)} total notifications. Of those, {len(unprocessed_notifications)} are unprocessed. Continue?")
+        should_cont = input("> ")
+        if (should_cont == "yes"):
+            for notification in unprocessed_notifications:
+                print(f"Handling notification {notification['id']}")
+                hmse.handle_notification(notification, special_message="This is part of a fix. So, basically the system got really gummed up so I had to throw together this last-minute fix. 😭 lmao. In my defense the API is really weird. No shade to the devs, I freaking love this site, but the API is wack yo. Anywho, remember that you can always do a withdrawal by calling @hmse withdraw. If that doesn't work, let HeyMoon know! Sorry about this, and may your profit margins be based and redpilled.")
+
     else:
         print("lol. lmao.")
 except BaseException as e:

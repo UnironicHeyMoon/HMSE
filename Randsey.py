@@ -1,12 +1,14 @@
 import random
 from Asset import Asset
 from User import User
+from os.path import exists, join, realpath
 
+from Util import get_real_filename
 
 class Randsey:
     def __init__(self, all_assets : list[Asset]) -> None:
         self.all_assets = all_assets
-        with open("randsey_quotes.txt", "r") as file:
+        with open(get_real_filename("randsey_quotes.txt")) as file:
             self.quotes = file.read().split("\n")
     
     def get_randsey_says(self, user : User):
@@ -21,3 +23,7 @@ class Randsey:
         to_return += f":randsey: *{quote}*\n\n"
 
         return to_return
+
+if __name__ == '__main__':
+    randsey = Randsey([Asset(1, "PUTIN")])
+    print(randsey.get_randsey_says(User(1, "HeyMoon")))

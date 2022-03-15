@@ -1,20 +1,14 @@
-from asyncio import to_thread
-import random
-from Asset import Asset
-from Command import BuyCommand, Command
-from RDramaAPIInterface import RDramaAPIInterface
+from Command import Command
 from Randsey import Randsey
 from User import User
 
+'''
+Allows for sending multiple messages at once, in a nice, orderly manner
+'''
 class MessageManager:
-    def __init__(self, api : RDramaAPIInterface, randsey : Randsey) -> None:
-        self.api = api
+    def __init__(self, randsey : Randsey) -> None:
         self.unsent_messages = {}
         self.randsey = randsey
-
-    def send_message(self, receiver: User, message : str):
-        self.api.send_message(receiver.name, message)
-        pass
     
     def send_message_queued(self, user: User, command : Command, message_type : int, message : str):
         if (user.id not in self.unsent_messages):

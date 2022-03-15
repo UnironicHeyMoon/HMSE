@@ -12,6 +12,10 @@ class PriceTracker:
     def __init__(self, database : Database) -> None:
         self.database = database
     
+    '''
+    Sets the price of an asset at a certain point in time.
+    Also takes care of setting the averages, etc.
+    '''
     def set_price(self, asset: Asset, price : int, time : int = None):
         if time is None:
             current_time = self.database.get_current_time_id()

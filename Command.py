@@ -36,7 +36,7 @@ class ExpiringCommand(Command):
         return self._time_remaining
 
     @time_remaining.setter
-    def set_time_remaining(self, new_time_remaining :int):
+    def time_remaining(self, new_time_remaining :int):
         self._time_remaining = new_time_remaining
 
 class BuyCommand(ExpiringCommand):
